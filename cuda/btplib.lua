@@ -96,23 +96,28 @@ function getMean(inputs,targets,lenet)
     return mean
 end
 
-function performanceEvaluator(trainset,lenet,eList)
-  items = eList or {8,14,32,49,53,58,65,68,69,70} 
-  length = #eList or (#eList)[1] or 10
+function performanceEvaluator(trainset,lenet,cudaFlag,eList)
+  items = eList or torch.Tensor({8,14,32,49,53,58,65,68,69,70})
+  length = (#items)[1]
   means = torch.Tensor(length)
   for i=1,length do
-    inputs = trainset.images[items[i]]
-    targets = torch.Tensor(1,1,1):fill(trainset.labels[items[i]]*0.3)
-    means[i] = getMean(inputs,targets,lenet)*100/(trainset.labels[items[i]]*0.3)
-    print('Image '.. items[i]..' | Label '.. string.format('%2d',trainset.labels[items[i]])  .. ' | Sigma '..string.format('%2.1f', trainset.labels[items[i]]*0.3) ..' | MSE ' .. string.format('%1.8f',criterion:forward(lenet:forward(inputs),targets)) .. ' | Percent Mean ' .. means[i])
+    if cudaFlag then
+      inputs = trainset.images[items[i]]:cuda()
+      targets = torch.Tensor(1,1,1):fill(trainset.labels[items[i]]*0.3):cuda()
+    else
+      inputs = trainset.images[items[i]]
+      targets = torch.Tensor(1,1,1):fill(trainset.labels[items[i]]*0.3)
+    end
+    means[i] = (getMean(inputs,targets,lenet)*100)/(trainset.labels[items[i]]*0.3)
+    print('Image '.. string.format('%3d',items[i])..' | Label '.. string.format('%2d',trainset.labels[items[i]])  .. ' | Sigma '..string.format('%2.1f', trainset.labels[items[i]]*0.3) ..' | Pred ' ..string.format('%1.8f',lenet:forward(inputs)[{1,1,1}]) .. ' | MSE ' .. string.format('%1.8f',criterion:forward(lenet:forward(inputs),targets)) .. ' | Percent Mean ' .. means[i])
   end
   print('Means of means: ' .. means:mean())
 end
 
 
 function classPerformanceEvaluator(trainset,lenet,eList,single)
-  items = eList or {8,14,32,49,53,58,65,68,69,70} 
-  length = (#eList)[1] or 10
+  items = eList or torch.Tensor({8,14,32,49,53,58,65,68,69,70}) 
+  length = (#items)[1]
   acc = torch.Tensor(10):fill(0)
   hist = torch.Tensor(10):fill(0)
   for i=1,length do
@@ -122,11 +127,16 @@ function classPerformanceEvaluator(trainset,lenet,eList,single)
     else
       targets = torch.Tensor(1,32,32):fill(trainset.labels[items[i]]*0.3):cuda()
     end
-    acc[trainset.labels[items[i]]] = acc[trainset.labels[items[i]]]+ getMean(inputs,targets,lenet)*100/(trainset.labels[items[i]]*0.3)
+    acc[trainset.labels[items[i]]] = acc[trainset.labels[items[i]]]+ (getMean(inputs,targets,lenet)*100)/(trainset.labels[items[i]]*0.3)
     hist[trainset.labels[items[i]]] = hist[trainset.labels[items[i]]] + 1
   end
   print(torch.cdiv(acc,hist))
   print(torch.cdiv(acc,hist):mean())
+end
+
+function randomEvaluator(dataSize,evalSize)
+  list = torch.randperm(dataSize)[{{1,evalSize}}]
+  performanceEvaluator(trainset,lenet,list)
 end
 
 -------------------------
@@ -180,3 +190,5 @@ function trainerBatch(trainset,lenet,lr, bSize, size,cudaFlag)
     xlua.progress(t,size)
   end
 end
+
+

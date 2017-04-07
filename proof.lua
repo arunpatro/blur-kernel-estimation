@@ -72,13 +72,13 @@ logger = optim.Logger('./proof.log')
 items = {8,14,32,49,53,58,65,68,69,70}
 
 -- Run for a lot of epochs
-for k=1,10 do
+for k=1,4 do
     for j=1,100 do
       currentError = 0
       for i=1,10 do
         trainer(0.0001,items[i])
       end
-      xlua.progress((k-1)*100+j,1000)
+      xlua.progress((k-1)*100+j,400)
       logger:add{['error'] = currentError/10}
       print('\ntotal: ' .. currentError .. ' perunit: ' ..currentError/10)
     end

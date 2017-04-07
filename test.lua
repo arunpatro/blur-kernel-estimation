@@ -4,7 +4,6 @@ require 'xlua'
 require 'math'
 require 'optim'
 require 'optim_updates'
-require 'io'
 require 'functions'
 
 lenet = torch.load('lenet-test.t7')
@@ -36,7 +35,7 @@ function trainer(lr,item)
 end
 
 function trainerBatch(lr, bSize, size)
-  print('Training with batch size ' .. bSize .. ' and learning rate ' .. lr)
+  print('Training with batch size ' .. bSize .. ' and learning rate ' .. lr .. ' and size ' .. size)
   params,grad_params = lenet:getParameters();
   for t = 1,size,bSize do
     grad_params:zero();
@@ -83,8 +82,8 @@ items = {8,14,32,49,53,58,65,68,69,70}
 
 -- trainerBatch(0.0001,50,1000)
 bSize = 50
-size = 100
-for i=1,10000 do
+size = 960
+for i=1,100 do
   currentError = 0
   trainerBatch(0.0001,bSize,size)
   print('\nPer pixel MSE: ' ..currentError*bSize/size)
@@ -94,6 +93,6 @@ torch.save('lenet-test.t7',lenet)
 
 logger:plot()
 -- performanceEvaluator(trainset,lenet,torch.range(1,size))
-classPerformance(trainset,lenet,torch.range(1,size))
+classPerformance(trainset,lenet,torch.range(1,size),false)
 
 

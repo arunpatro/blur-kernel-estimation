@@ -24,11 +24,11 @@ function classPerformance(trainset,lenet,eList,single)
   acc = torch.Tensor(10):fill(0)
   hist = torch.Tensor(10):fill(0)
   for i=1,length do
-    inputs = trainset.images[items[i]]
+    inputs = trainset.images[items[i]]:cuda()
     if single then
-      targets = torch.Tensor(1,1,1):fill(trainset.labels[items[i]]*0.3)
+      targets = torch.Tensor(1,1,1):fill(trainset.labels[items[i]]*0.3):cuda()
     else
-      targets = torch.Tensor(1,32,32):fill(trainset.labels[items[i]]*0.3)
+      targets = torch.Tensor(1,32,32):fill(trainset.labels[items[i]]*0.3):cuda()
     end
     acc[trainset.labels[items[i]]] = acc[trainset.labels[items[i]]]+ getMean(inputs,targets,lenet)*100/(trainset.labels[items[i]]*0.3)
     hist[trainset.labels[items[i]]] = hist[trainset.labels[items[i]]] + 1
@@ -39,8 +39,8 @@ end
 
 function trainSingle(trainset,lenet,lr,item)
   params,grad_params = lenet:getParameters();
-  inputs = trainset.images[item]
-  targets = torch.Tensor(1,1,1):fill(trainset.labels[item]*0.3)
+  inputs = trainset.images[item]:cuda()
+  targets = torch.Tensor(1,1,1):fill(trainset.labels[item]*0.3):cuda()
   grad_params:zero();
   outputs = lenet:forward(inputs);
   currentError = currentError + criterion:forward(outputs, targets);

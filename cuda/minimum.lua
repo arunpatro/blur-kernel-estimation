@@ -7,14 +7,12 @@ require 'torch'
 require 'xlua'
 require 'math'
 require 'optim'
-require 'optim_updates'
-require 'functions'
+require 'btplib'
 require 'cudnn'
 require 'cunn'
 require 'cutorch'
 
-lenet = torch.load('lenet-one.t7')
-lenet = lenet:cuda()
+lenet = torch.load('lenet-one.t7'):cuda()
 trainset = torch.load('testSig.t7')
 
 function trainset:size()
@@ -22,11 +20,6 @@ function trainset:size()
 end
 
 criterion = nn.MSECriterion():cuda()
-
-config = {
-    learningRate = 0.0001,
-    learningRateDecay = 1e-7
-}
 
 logger = optim.Logger('./test.log')
 
@@ -36,7 +29,7 @@ logger = optim.Logger('./test.log')
 --     for j=1,10 do
 --       currentError = 0
 --       for i=1,size do
---         trainSingle(trainset,lenet,0.001,i)
+--         trainerSingle(trainset,lenet,0.001,i)
 --         xlua.progress(i,size)
 --       end
 --       logger:add{['error'] = currentError/size}
@@ -61,6 +54,6 @@ end
 
 -- logger:plot()
 performanceEvaluator(trainset,lenet)
-classPerformance(trainset,lenet,torch.range(1,size),true)
+classPerformanceEvaluator(trainset,lenet,torch.range(1,size),true)
 
 

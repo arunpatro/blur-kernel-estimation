@@ -135,8 +135,8 @@ function classPerformanceEvaluator(trainset,lenet,eList,single)
 end
 
 function randomEvaluator(dataSize,evalSize)
-  list = torch.randperm(dataSize)[{{1,evalSize}}]
-  performanceEvaluator(trainset,lenet,list)
+  local list = torch.randperm(dataSize)[{{1,evalSize}}]
+  performanceEvaluator(trainset,lenet,true,list)
 end
 
 -------------------------

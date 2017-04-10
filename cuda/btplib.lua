@@ -106,10 +106,10 @@ function performanceEvaluator(trainset,lenet,cudaFlag,eList)
       targets = torch.Tensor(1,1,1):fill(trainset.labels[items[i]]*0.3):cuda()
     else
       inputs = trainset.images[items[i]]
-      targets = torch.Tensor(1,1,1):fill(trainset.labels[items[i]]*0.3)
+      targets = torch.Tensor(1,32,32):fill(trainset.labels[items[i]]*0.3)
     end
     means[i] = (getMean(inputs,targets,lenet)*100)/(trainset.labels[items[i]]*0.3)
-    print('Image '.. string.format('%3d',items[i])..' | Label '.. string.format('%2d',trainset.labels[items[i]])  .. ' | Sigma '..string.format('%2.1f', trainset.labels[items[i]]*0.3) ..' | Pred ' ..string.format('%1.8f',lenet:forward(inputs)[{1,1,1}]) .. ' | MSE ' .. string.format('%1.8f',criterion:forward(lenet:forward(inputs),targets)) .. ' | Percent Mean ' .. means[i])
+    print('Image '.. string.format('%3d',items[i])..' | Label '.. string.format('%2d',trainset.labels[items[i]])  .. ' | Sigma '..string.format('%2.1f', trainset.labels[items[i]]*0.3) ..' | Pred ' ..string.format('%1.8f',lenet:forward(inputs)[{1,1,1}]) .. ' | MSE ' .. string.format('%1.8f',criterion:forward(lenet:forward(inputs),targets)) .. ' | RMSE ' .. string.format('%1.8f',torch.sqrt(criterion:forward(lenet:forward(inputs),targets))) .. ' | Percent Error ' .. string.format('%3.2f',means[i]) .. '%')
   end
   print('Means of means: ' .. means:mean())
 end
@@ -125,7 +125,7 @@ function classPerformanceEvaluator(trainset,lenet,eList,single)
     if single then
       targets = torch.Tensor(1,1,1):fill(trainset.labels[items[i]]*0.3):cuda()
     else
-      targets = torch.Tensor(1,32,32):fill(trainset.labels[items[i]]*0.3):cuda()
+      targets = torch.Tensor(1,1,1):fill(trainset.labels[items[i]]*0.3):cuda()
     end
     acc[trainset.labels[items[i]]] = acc[trainset.labels[items[i]]]+ (getMean(inputs,targets,lenet)*100)/(trainset.labels[items[i]]*0.3)
     hist[trainset.labels[items[i]]] = hist[trainset.labels[items[i]]] + 1
@@ -186,6 +186,7 @@ function trainerBatch(trainset,lenet,lr, bSize, size,cudaFlag)
     df_do = criterion:backward(outputs, targets);
     lenet:backward(inputs, df_do);
     adagrad(params,grad_params,lr,1e-8,config)
+    -- sgd(params,grad_params,lr)
     currentError = currentError + f
     xlua.progress(t,size)
   end

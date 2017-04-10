@@ -2,29 +2,32 @@ require 'image'
 require 'paths'
 require 'xlua'
 
-trname = 'trainSigActual.t7'
+trname = 'trainSig3.t7'
 trsize = 224000
-tename = 'testSigActual.t7'
+tename = 'testSig3.t7'
 tesize = 96000
 
 -- create the trainset in order
 imgs = torch.Tensor(trsize,1,32,32)
 lbls = torch.ceil( torch.range(1,trsize) / (trsize/10) ) 
+print('Training loading')
 for j = 1,trsize do
 	imgs[j] = image.load('./train/img_'..j..'.jpg',1,'byte')
-	print('Training loading ' .. j/trsize*100)
+	xlua.progress(j,trsize)
 end
 dataset = {
 	images = torch.Tensor(trsize,1,32,32),
 	labels = torch.Tensor(trsize)
 }
 
+
 -- create the testset in order
 imgs2 = torch.Tensor(tesize,1,32,32)
 lbls2 = torch.ceil(torch.range(1,tesize) / (tesize/10) ) 
+print('Testing loading')
 for j = 1,tesize do
 	imgs2[j] = image.load('./test/img_'..j..'.jpg',1,'byte')
-	print('Testing loading ' .. j/tesize*100)
+	xlua.progress(j,tesize)
 end
 dataset2 = {
 	images = torch.Tensor(tesize,1,32,32),

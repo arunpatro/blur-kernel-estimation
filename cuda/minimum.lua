@@ -21,7 +21,7 @@ end
 
 criterion = nn.MSECriterion():cuda()
 
-logger = optim.Logger('./test.log')
+logger = optim.Logger('./testmse.log')
 logger2 = optim.Logger('./testrmse.log')
 
 -- Run for a lot of epochs
@@ -41,23 +41,23 @@ logger2 = optim.Logger('./testrmse.log')
 -- -- Check stats for each class 
 -- performanceEvaluator(trainset,lenet,items)
 
-bSize = 250
+bSize = 50
 size = 1000
-jMax = 5 -- Large Epochs
-iMax = 10 -- Small Epochs after which to save
+jMax = 20 -- Large Epochs
+iMax = 50 -- Small Epochs after which to save
 for j=1,jMax do
   for i=1,iMax do
     currentError = 0
-    trainerBatch(trainset,lenet,0.0001,bSize,size,true)
+    trainerBatch(trainset,lenet,0.001,bSize,size,true,true)
     print('\nEpoch: ' .. (j-1)*iMax+i..'/'..iMax*jMax..' Per pixel MSE: ' ..currentError*bSize/size..' RMSE: ' ..torch.sqrt(currentError*bSize/size))
     logger:add{['error'] = currentError*bSize/size}
     logger2:add{['error'] = torch.sqrt(currentError*bSize/size)}
   end
+  torch.save('lenet-one.t7',lenet)
 end
-torch.save('lenet-one.t7',lenet)
 
 -- logger:plot()
 -- logger2:plot()
 -- performanceEvaluator(trainset,lenet,true)
-classPerformanceEvaluator(trainset,lenet,torch.range(1,size),true)
+classPerformanceEvaluator(trainset,lenet,true,torch.range(1,size))
 randomEvaluator(size,10)

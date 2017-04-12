@@ -1,7 +1,7 @@
-function [out] = ramper(A,sigmaMin,sigmaMax)
+function [out] = blur(A,sigmaMin,sigmaMax)
 out = [];
 cols = size(A,2);
-sigmaCols = 1.35*sin(0.02*(1:640))+1.65;
+sigmaCols = linspace(sigmaMin,sigmaMax,cols);
 kernelSizes = 2*ceil(2*sigmaCols)+1;
 pF = (kernelSizes(end)-1)/2; %padding factor == maximum of the padding required for largest filter kernel. This is neccesary as we are doing column wise convolution.
 A = padarray(A,[pF,pF]);

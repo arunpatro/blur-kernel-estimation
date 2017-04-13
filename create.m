@@ -2,10 +2,12 @@
 a = dir('images');
 a = a(3:end);
 images = {};
-for i = 1:80
+for i = 1:size(a,1)
     images{i} = imread(fullfile('images',a(i).name));
+    [r c ~] = size(images{i});
+    images{i} = images{i}(1:32*floor(r/32),1:32*floor(c/32),:);
 end
-images{1} = images{1}(1:640,1:640);
+
 % create blur kernels
 sigma = 0.3:0.3:3;
 kernelSizes = 2*ceil(2*sigma)+1;
@@ -15,36 +17,45 @@ end
 
 % create blurred images
 for i = 1:size(sigma,2)
-    for j = 1:80
-        blurredImages{(i-1)*80+j} = imfilter(images{j},sigmaFilters{i});
+    for j = 1:size(images,2)
+        blurredImages{(i-1)*size(images,2)+j} = imfilter(images{j},sigmaFilters{i});
     end
 end
 
 %create individual images by sampling 70/30 of each blurred image
 train = {};
 test = {};
-div = 32*ones(1,20);
+
 n = size(blurredImages,2);
+ratio1 = 1;
+ratio2 = 0.3;
 for ctrn = 1:n
-    sampI = blurredImages{ctrn};
     disp(ctrn)
+    img = blurredImages{ctrn};
+    [r c ~] = size(img);
+    nRowPatch = floor(r/32);
+    nColPatch = floor(c/32);
     % for 20x20 = 400 patches per image
-    temp = reshape(mat2cell(sampI,div,div),1,400);
-    perm = randperm(400);
-    temp = temp(perm(1:400));
-    train = [train temp(1:280)];
-    test = [test temp(281:400)];
+    temp = reshape(mat2cell(img,32*ones(1,nRowPatch),32*ones(1,nColPatch),3),1,nRowPatch*nColPatch);
+    perm = randperm(nRowPatch*nColPatch);
+    temp = temp(perm(1:floor(ratio1*nRowPatch*nColPatch)));
+    test = [test temp(1:floor(ratio2*size(temp,2)))];
+    train = [train temp(floor(ratio2*size(temp,2))+1:size(temp,2))];
 end
 
 trainTorch = zeros(size(train,2),1,32,32,'uint8');
 testTorch = zeros(size(test,2),1,32,32,'uint8');
 
 %reshaping for torch
-for ctr = 1:size(train,2)
-	trainTorch(ctr,1,:,:) = train{ctr};
+for patch = 1:size(train,2)
+    for channel = 1:3
+        trainTorch(patch,channel,:,:) = train{patch}(:,:,channel);
+    end
 end
-for ctr = 1:size(test,2)
-	testTorch(ctr,1,:,:) = test{ctr};
+for patch = 1:size(test,2)
+    for channel = 1:3
+        testTorch(patch,channel,:,:) = test{patch}(:,:,channel);
+    end
 end
 
 save('torchDB.mat','trainTorch','testTorch')

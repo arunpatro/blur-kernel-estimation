@@ -30,7 +30,8 @@ for ctrn = 1:n
     disp(ctrn)
     % for 20x20 = 400 patches per image
     temp = reshape(mat2cell(sampI,div,div),1,400);
-%     temp = temp(1:4:400);
+    perm = randperm(400);
+    temp = temp(perm(1:400));
     train = [train temp(1:280)];
     test = [test temp(281:400)];
 end

@@ -7,34 +7,43 @@
 require 'nn'
 require 'torch'
 require 'image'
-local matio = require 'matio'
+local matio = require 'matio';
 
-trainset = torch.load('trainSigActual.t7');
+trainset = torch.load('train.t7');
+trainset.images = trainset.images:double();
 mean = {} -- store the mean, to normalize the test set in the future
 stdv  = {} -- store the standard-deviation for the future
 mean = trainset.images[{ {}, {1}, {}, {}  }]:mean(); -- mean estimation
 stdv = trainset.images[{ {}, {1}, {}, {}  }]:std(); -- std estimation
 
-lenet = torch.load('lenet.t7')
+lenet = torch.load('model_10_cpu.t7')
 
-imageNo = 40
-ramp = image.load('ramps/ramp'.. imageNo.. '.jpg',1,'byte'):double();
-ramp[{ {}, {}, {}  }]:add(-mean); -- mean subtraction
-ramp[{ {}, {}, {}  }]:div(stdv);
+imgName = arg[1]
+print(imgName)
+img = image.load(imgName,1,'byte'):double();
+-- img = torch.reshape(img,1,img:size()[1],img:size()[2])
+img[{ {}, {}, {}  }]:add(-mean); -- mean subtraction
+img[{ {}, {}, {}  }]:div(stdv);
 
-function getSigma(patch)
+function getSigmaClassification(patch)
 	prediction = lenet:forward(patch)
 	confidences, indices = torch.sort(prediction, true)
 	return indices[1]
 end
 
-
-map = torch.Tensor(609,609):byte();
-for row = 1,609 do
-for col = 1,609 do
-print(row..'|'..col)
-map[row][col] = getSigma(ramp[{{1},{row,row+31},{col,col+31}}]);
-end
+function getSigmaRegression(patch)
+	return lenet:forward(patch)[{1,1,1}]
 end
 
-matio.save('map'..imageNo..'.mat',map)
+rows = img:size()[2] - 31
+cols = img:size()[3] - 31
+map = torch.Tensor(rows,cols):byte();
+for row = 1,rows do
+	xlua.progress(row,rows)
+	for col = 1,cols do
+		map[row][col] = getSigmaClassification(img[{{1},{row,row+31},{col,col+31}}]);
+	end
+end
+
+matio.save(string.sub(imgName,1,-4)..'mat',map)
+

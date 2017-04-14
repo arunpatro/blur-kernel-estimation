@@ -181,6 +181,11 @@ function trainerBatch(trainset, model, lr, bSize, size, cudaFlag, classFlag, fcn
       targets = classFlag and targets or targets:cuda();
     end
     outputs = model:forward(inputs);
+    if classFlag then
+      for i = 1,opt.batchSize do
+         confusion:add(outputs[i], targets[i])
+      end
+    end
     f = criterion:forward(outputs, targets);
     df_do = criterion:backward(outputs, targets);
     model:backward(inputs, df_do);
@@ -188,5 +193,11 @@ function trainerBatch(trainset, model, lr, bSize, size, cudaFlag, classFlag, fcn
     -- sgd(params,grad_params,lr)
     currentError = currentError + f
     xlua.progress(t,size)
+  end
+  if classFlag then
+    print(confusion)
+    print('\27[31mTest: ' .. confusion.totalValid * 100)
+    testLogger:add{['% mean class accuracy (test set)'] = confusion.totalValid * 100}
+    confusion:zero()
   end
 end

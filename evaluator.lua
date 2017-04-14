@@ -41,7 +41,7 @@ map = torch.Tensor(rows,cols);
 for row = 1,rows do
 	xlua.progress(row,rows)
 	for col = 1,cols do
-		map[row][col] = 0.1*getSigmaClassification(img[{{1},{row,row+31},{col,col+31}}]);
+		map[row][col] = 0.3*getSigmaClassification(img[{{1},{row,row+31},{col,col+31}}]);
 	end
 end
 

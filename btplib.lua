@@ -90,13 +90,13 @@ end
 -------------------------
 
 
-function getMean(inputs,targets,lenet)
-    diff = torch.abs(lenet:forward(inputs) - targets)
+function getMean(inputs,targets,model)
+    diff = torch.abs(model:forward(inputs) - targets)
     mean = diff:mean()
     return mean
 end
 
-function performanceEvaluator(trainset,lenet,fcnFlag,cudaFlag,fcnFlag,eList)
+function performanceEvaluator(trainset,model,fcnFlag,cudaFlag,fcnFlag,eList)
   items = eList or torch.Tensor({8,14,32,49,53,58,65,68,69,70})
   length = (#items)[1]
   means = torch.Tensor(length)
@@ -109,14 +109,14 @@ function performanceEvaluator(trainset,lenet,fcnFlag,cudaFlag,fcnFlag,eList)
       inputs = trainset.images[items[i]]
       targets = torch.Tensor(1,iSize,iSize):fill(trainset.labels[items[i]]*0.3)
     end
-    means[i] = (getMean(inputs,targets,lenet)*100)/(trainset.labels[items[i]]*0.3)
-    print('Image '.. string.format('%3d',items[i])..' | Label '.. string.format('%2d',trainset.labels[items[i]])  .. ' | Sigma '..string.format('%2.1f', trainset.labels[items[i]]*0.3) ..' | Pred ' ..string.format('%1.8f',lenet:forward(inputs)[{1,1,1}]) .. ' | MSE ' .. string.format('%1.8f',criterion:forward(lenet:forward(inputs),targets)) .. ' | RMSE ' .. string.format('%1.8f',torch.sqrt(criterion:forward(lenet:forward(inputs),targets))) .. ' | Percent Error ' .. string.format('%3.2f',means[i]) .. '%')
+    means[i] = (getMean(inputs,targets,model)*100)/(trainset.labels[items[i]]*0.3)
+    print('Image '.. string.format('%3d',items[i])..' | Label '.. string.format('%2d',trainset.labels[items[i]])  .. ' | Sigma '..string.format('%2.1f', trainset.labels[items[i]]*0.3) ..' | Pred ' ..string.format('%1.8f',model:forward(inputs)[{1,1,1}]) .. ' | MSE ' .. string.format('%1.8f',criterion:forward(model:forward(inputs),targets)) .. ' | RMSE ' .. string.format('%1.8f',torch.sqrt(criterion:forward(model:forward(inputs),targets))) .. ' | Percent Error ' .. string.format('%3.2f',means[i]) .. '%')
   end
   print('Means of means: ' .. means:mean())
 end
 
 
-function classPerformanceEvaluator(trainset,lenet,fcnFlag,eList)
+function classPerformanceEvaluator(trainset,model,fcnFlag,eList)
   items = eList or torch.Tensor({8,14,32,49,53,58,65,68,69,70}) 
   length = (#items)[1]
   acc = torch.Tensor(10):fill(0)
@@ -125,7 +125,7 @@ function classPerformanceEvaluator(trainset,lenet,fcnFlag,eList)
   for i=1,length do
     inputs = trainset.images[items[i]]:cuda()
     targets = torch.Tensor(1,iSize,iSize):fill(trainset.labels[items[i]]*0.3):cuda()
-    acc[trainset.labels[items[i]]] = acc[trainset.labels[items[i]]]+ (getMean(inputs,targets,lenet)*100)/(trainset.labels[items[i]]*0.3)
+    acc[trainset.labels[items[i]]] = acc[trainset.labels[items[i]]]+ (getMean(inputs,targets,model)*100)/(trainset.labels[items[i]]*0.3)
     hist[trainset.labels[items[i]]] = hist[trainset.labels[items[i]]] + 1
   end
   print(torch.cdiv(acc,hist))
@@ -134,62 +134,59 @@ end
 
 function randomEvaluator(dataSize,evalSize)
   local list = torch.randperm(dataSize)[{{1,evalSize}}]
-  performanceEvaluator(trainset,lenet,true,true,list)
+  performanceEvaluator(trainset,model,true,true,list)
 end
 
 -------------------------
 -- Trainers
 -------------------------
 
-function trainerSingle(trainset,lenet,lr,item,cudaFlag)
-  params,grad_params = lenet:getParameters();
+function trainerSingle(trainset,model,lr,item,cudaFlag)
+  params,grad_params = model:getParameters();
   iSize = fcnFlag and 32 or 1;
+  inputs = trainset.images[item]
+  targets = torch.Tensor(1,iSize,iSize):fill(trainset.labels[item]*0.3)
   if cudaFlag then
-    inputs = trainset.images[item]:cuda()
-    targets = torch.Tensor(1,iSize,iSize):fill(trainset.labels[item]*0.3):cuda()
-  else
-    inputs = trainset.images[item]
-    targets = torch.Tensor(1,iSize,iSize):fill(trainset.labels[item]*0.3)
+    inputs = inputs:cuda()
+    targets = targets:cuda()
   end
   grad_params:zero();
-  outputs = lenet:forward(inputs);
+  outputs = model:forward(inputs);
   currentError = currentError + criterion:forward(outputs, targets);
   df_do = criterion:backward(outputs, targets);
-  lenet:backward(inputs, df_do);
+  model:backward(inputs, df_do);
   -- sgd(params,grad_params,lr)
   -- rmsprop(params,grad_params,lr,0.99,1e-8,config)
   -- adam(params,grad_params,lr,0.9,0.999,1e-7,config)
   adagrad(params,grad_params,lr,1e-7,config)
 end
 
-function trainerBatch(trainset, lenet, lr, bSize, size, cudaFlag, fcnFlag)
+function trainerBatch(trainset, model, lr, bSize, size, cudaFlag, classFlag, fcnFlag)
   print('Training with batch size ' .. bSize .. ' and learning rate ' .. lr .. ' and size ' .. size)
-  params,grad_params = lenet:getParameters();
+  params,grad_params = model:getParameters();
   iSize = fcnFlag and 32 or 1;
   for t = 1,size,bSize do
     grad_params:zero();
-    if cudaFlag then
-      inputs = trainset.images[{{t, math.min(t+bSize-1,size)}}]:cuda()
-      targets = torch.Tensor(math.min(t+bSize-1,size)-t+1,1,iSize,iSize):cuda()
-      for i=t,math.min(t+bSize-1,size) do
-        targets[i-t+1] = targets[i-t+1]:fill(trainset.labels[i-t+1]*0.3):cuda()
-      end
+    inputs = trainset.images[{{t, math.min(t+bSize-1,size)}}]
+    if classFlag then
+      targets = trainset.labels[{{t, math.min(t+bSize-1,size)}}]
     else
-      inputs = trainset.images[{{t, math.min(t+bSize-1,size)}}]
       targets = torch.Tensor(math.min(t+bSize-1,size)-t+1,1,iSize,iSize)
       for i=t,math.min(t+bSize-1,size) do
-        targets[i-t+1] = targets[i-t+1]:fill(trainset.labels[i-t+1]*0.3)
+        targets[i-t+1] = targets[i-t+1]:fill(trainset.labels[i-t+1])
       end
     end
-    outputs = lenet:forward(inputs);
+    if cudaFlag then
+      inputs = inputs:cuda();
+      targets = classFlag and targets or targets:cuda();
+    end
+    outputs = model:forward(inputs);
     f = criterion:forward(outputs, targets);
     df_do = criterion:backward(outputs, targets);
-    lenet:backward(inputs, df_do);
+    model:backward(inputs, df_do);
     adagrad(params,grad_params,lr,1e-8,config)
     -- sgd(params,grad_params,lr)
     currentError = currentError + f
     xlua.progress(t,size)
   end
 end
-
-

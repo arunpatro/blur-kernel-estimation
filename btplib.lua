@@ -96,36 +96,32 @@ function getMean(inputs,targets,model)
     return mean
 end
 
-function performanceEvaluator(trainset,model,fcnFlag,cudaFlag,fcnFlag,eList)
-  items = eList or torch.Tensor({8,14,32,49,53,58,65,68,69,70})
-  length = (#items)[1]
-  means = torch.Tensor(length)
+function performanceEvaluator(trainset,model,fcnFlag,cudaFlag,items)
+  means = torch.Tensor(items:size(1))
   iSize = fcnFlag and 32 or 1;
-  for i=1,length do
+  for i=1,items:size(1) do
     if cudaFlag then
       inputs = trainset.images[items[i]]:cuda()
-      targets = torch.Tensor(1,iSize,iSize):fill(trainset.labels[items[i]]*0.3):cuda()
+      targets = torch.Tensor(1,iSize,iSize):fill(trainset.labels[items[i]]*0.1):cuda()
     else
       inputs = trainset.images[items[i]]
-      targets = torch.Tensor(1,iSize,iSize):fill(trainset.labels[items[i]]*0.3)
+      targets = torch.Tensor(1,iSize,iSize):fill(trainset.labels[items[i]]*0.1)
     end
-    means[i] = (getMean(inputs,targets,model)*100)/(trainset.labels[items[i]]*0.3)
-    print('Image '.. string.format('%3d',items[i])..' | Label '.. string.format('%2d',trainset.labels[items[i]])  .. ' | Sigma '..string.format('%2.1f', trainset.labels[items[i]]*0.3) ..' | Pred ' ..string.format('%1.8f',model:forward(inputs)[{1,1,1}]) .. ' | MSE ' .. string.format('%1.8f',criterion:forward(model:forward(inputs),targets)) .. ' | RMSE ' .. string.format('%1.8f',torch.sqrt(criterion:forward(model:forward(inputs),targets))) .. ' | Percent Error ' .. string.format('%3.2f',means[i]) .. '%')
+    means[i] = (getMean(inputs,targets,model)*100)/(trainset.labels[items[i]]*0.1)
+    print('Image '.. string.format('%5d',items[i])..' | Label '.. string.format('%2d',trainset.labels[items[i]])  .. ' | Sigma '..string.format('%2.1f', trainset.labels[items[i]]*0.1) ..' | Pred ' ..string.format('%1.8f',model:forward(inputs)[{1,1,1}]) .. ' | MSE ' .. string.format('%1.8f',criterion:forward(model:forward(inputs),targets)) .. ' | RMSE ' .. string.format('%1.8f',torch.sqrt(criterion:forward(model:forward(inputs),targets))) .. ' | Percent Error ' .. string.format('%3.2f',means[i]) .. '%')
   end
   print('Means of means: ' .. means:mean())
 end
 
 
-function classPerformanceEvaluator(trainset,model,fcnFlag,eList)
-  items = eList or torch.Tensor({8,14,32,49,53,58,65,68,69,70}) 
-  length = (#items)[1]
-  acc = torch.Tensor(10):fill(0)
-  hist = torch.Tensor(10):fill(0)
+function classPerformanceEvaluator(trainset,model,fcnFlag,items)
+  acc = torch.Tensor(30):fill(0)
+  hist = torch.Tensor(30):fill(0)
   iSize = fcnFlag and 32 or 1;
-  for i=1,length do
+  for i=1,items:size(1) do
     inputs = trainset.images[items[i]]:cuda()
-    targets = torch.Tensor(1,iSize,iSize):fill(trainset.labels[items[i]]*0.3):cuda()
-    acc[trainset.labels[items[i]]] = acc[trainset.labels[items[i]]]+ (getMean(inputs,targets,model)*100)/(trainset.labels[items[i]]*0.3)
+    targets = torch.Tensor(1,iSize,iSize):fill(trainset.labels[items[i]]*0.1):cuda()
+    acc[trainset.labels[items[i]]] = acc[trainset.labels[items[i]]]+ (getMean(inputs,targets,model)*100)/(trainset.labels[items[i]]*0.1)
     hist[trainset.labels[items[i]]] = hist[trainset.labels[items[i]]] + 1
   end
   print(torch.cdiv(acc,hist))
@@ -162,7 +158,7 @@ function trainerSingle(trainset,model,lr,item,cudaFlag)
   params,grad_params = model:getParameters();
   iSize = fcnFlag and 32 or 1;
   inputs = trainset.images[item]
-  targets = torch.Tensor(1,iSize,iSize):fill(trainset.labels[item]*0.3)
+  targets = torch.Tensor(1,iSize,iSize):fill(trainset.labels[item]*0.1)
   if cudaFlag then
     inputs = inputs:cuda()
     targets = targets:cuda()
@@ -198,9 +194,9 @@ function trainerBatch(dataset, model, lr, bSize, size, cudaFlag, classFlag, fcnF
     if classFlag then
       targets = set.labels[{{t, math.min(t+bSize-1,size)}}]
     else
-      local targets = torch.Tensor(math.min(t+bSize-1,size)-t+1,1,iSize,iSize)
+      targets = torch.Tensor(math.min(t+bSize-1,size)-t+1,1,iSize,iSize)
       for i=t,math.min(t+bSize-1,size) do
-        targets[i-t+1] = targets[i-t+1]:fill(trainset.labels[i-t+1])
+        targets[i-t+1] = targets[i-t+1]:fill(0.1*trainset.labels[i-t+1])
       end
     end
 

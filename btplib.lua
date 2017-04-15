@@ -137,6 +137,25 @@ function randomEvaluator(dataSize,evalSize)
   performanceEvaluator(trainset,model,true,true,list)
 end
 
+function testClass(dataset,model,cudaFlag,bSize,size)
+  print('<trainer> on testing Set:')
+  for t = 1,size,bSize do
+    xlua.progress(t, dataset:size())
+    local inputs = dataset.images[{{t, math.min(t+bSize-1,size)}}]
+    if cudaFlag then
+      inputs = inputs:cuda()
+    end
+    local targets = dataset.labels[{{t, math.min(t+bSize-1,size)}}]
+    local preds = model:forward(inputs)
+    for i = 1,bSize do
+      confusion:add(preds[i], targets[i])
+    end
+  end
+  print(confusion)
+  print('\27[31mTest: ' .. confusion.totalValid * 100)
+  testLogger:add{['% mean class accuracy (test set)'] = confusion.totalValid * 100}
+  confusion:zero()
+end
 -------------------------
 -- Trainers
 -------------------------

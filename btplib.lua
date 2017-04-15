@@ -147,9 +147,7 @@ function testClass(dataset,model,cudaFlag,bSize,size)
     end
     local targets = dataset.labels[{{t, math.min(t+bSize-1,size)}}]
     local preds = model:forward(inputs)
-    for i = 1,bSize do
-      confusion:add(preds[i], targets[i])
-    end
+    confusion:batchAdd(outputs, targets)
   end
   print(confusion)
   print('\27[31mTest: ' .. confusion.totalValid * 100)
@@ -215,9 +213,7 @@ function trainerBatch(dataset, model, lr, bSize, size, cudaFlag, classFlag, fcnF
     local outputs = model:forward(inputs);
 
     if classFlag then
-      for i = 1,bSize do
-         confusion:add(outputs[i], targets[i])
-      end
+      confusion:batchAdd(outputs, targets)
     end
 
     local f = criterion:forward(outputs, targets);

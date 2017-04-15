@@ -19,6 +19,6 @@ Edit `main.lua` for an appropriate criterion (NLL or MSE). Incase of classificat
 Edit and run `plot.py`. 
 
 ## Evaluation
-Evaluation is done by predicting the class of every 32x32 patch striding the image by 1px using `evaluator.lua`. It accepts a argument from the CLI and outputs a mat of the predicted sigma map. One can visulize it using the `mesh` command from matlab. 
+Evaluation is done by predicting the class of every 32x32 patch striding the image by 1px using `evaluator.lua`. It accepts a argument from the CLI and outputs a mat of the predicted sigma map. One can visulize it using the `mesh` command from matlab. Alternatively you may use `savemesh` command in `scripts` to output files in 3 views. 
 
 

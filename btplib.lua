@@ -161,13 +161,21 @@ function trainerSingle(trainset,model,lr,item,cudaFlag)
   adagrad(params,grad_params,lr,1e-7,config)
 end
 
-function trainerBatch(trainset, model, lr, bSize, size, cudaFlag, classFlag, fcnFlag)
+function trainerBatch(dataset, model, lr, bSize, size, cudaFlag, classFlag, fcnFlag)
   print('Training with batch size ' .. bSize .. ' and learning rate ' .. lr .. ' and size ' .. size)
   params,grad_params = model:getParameters();
   iSize = fcnFlag and 32 or 1;
+
+  p = torch.randperm(size);
+  for i = 1,size do
+    trainset.images[i] = dataset.images[p[i]]
+    trainset.labels[i] = dataset.labels[p[i]]
+  end
+
   for t = 1,size,bSize do
     grad_params:zero();
     inputs = trainset.images[{{t, math.min(t+bSize-1,size)}}]
+
     if classFlag then
       targets = trainset.labels[{{t, math.min(t+bSize-1,size)}}]
     else
@@ -176,16 +184,20 @@ function trainerBatch(trainset, model, lr, bSize, size, cudaFlag, classFlag, fcn
         targets[i-t+1] = targets[i-t+1]:fill(trainset.labels[i-t+1])
       end
     end
+
     if cudaFlag then
       inputs = inputs:cuda();
       targets = classFlag and targets or targets:cuda();
     end
+
     outputs = model:forward(inputs);
+
     if classFlag then
-      for i = 1,opt.batchSize do
+      for i = 1,bSize do
          confusion:add(outputs[i], targets[i])
       end
     end
+
     f = criterion:forward(outputs, targets);
     df_do = criterion:backward(outputs, targets);
     model:backward(inputs, df_do);
@@ -196,8 +208,8 @@ function trainerBatch(trainset, model, lr, bSize, size, cudaFlag, classFlag, fcn
   end
   if classFlag then
     print(confusion)
-    print('\27[31mTest: ' .. confusion.totalValid * 100)
-    testLogger:add{['% mean class accuracy (test set)'] = confusion.totalValid * 100}
+    print('\27[31mTrain: ' .. confusion.totalValid * 100)
+    testLogger:add{['% mean class accuracy (train set)'] = confusion.totalValid * 100}
     confusion:zero()
   end
 end

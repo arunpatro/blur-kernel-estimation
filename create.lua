@@ -30,7 +30,7 @@ for i = 1,imgsTrain:size(1) do
 end
 
 print('Creating shuffled testset')
-p2 = torch.randperm(imgsTest:size(1)
+p2 = torch.randperm(imgsTest:size(1))
 for i = 1,imgsTest:size(1) do
 	dataset2.images[i] = imgsTest[p2[i]]
 	dataset2.labels[i] = lblsTest[p2[i]]

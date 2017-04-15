@@ -5,7 +5,7 @@ require 'math'
 require 'optim'
 require 'btplib'
 
-model = torch.load('model_10_cpu.t7')
+model = torch.load('model_30_cpu.t7')
 
 print('Loading the training set')
 trainset = torch.load('train.t7');
@@ -37,15 +37,15 @@ testset.images[{ {}, {1}, {}, {}  }]:div(stdv)
 criterion = nn.ClassNLLCriterion()
 
 parameters,gradParameters = model:getParameters()
-confusion = optim.ConfusionMatrix(10)
+confusion = optim.ConfusionMatrix(30)
 trainLogger = optim.Logger('./train.log')
 testLogger = optim.Logger('./test.log')
 
 currentError = 0
 for epoch = 1,5 do
-  trainerBatch(trainset,model,0.001,10,500,false,true,false)
+  trainerBatch(trainset,model,0.001,50,1000,false,true,false)
   if epoch%3==0 then
-    testClass(testset,model,50,1000)
-    torch.save('model_10_cpu.t7',model)
+    -- testClass(testset,model,false,50,1000)
+    -- torch.save('model_30_cpu.t7',model)
   end
 end

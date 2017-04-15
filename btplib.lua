@@ -142,7 +142,7 @@ function testClass(dataset,model,cudaFlag,bSize,size)
       inputs = inputs:cuda()
     end
     local targets = dataset.labels[{{t, math.min(t+bSize-1,size)}}]
-    local preds = model:forward(inputs)
+    local outputs = model:forward(inputs)
     confusion:batchAdd(outputs, targets)
   end
   print(confusion)

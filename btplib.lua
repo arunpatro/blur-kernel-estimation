@@ -209,7 +209,7 @@ function trainerBatch(dataset, model, lr, bSize, size, cudaFlag, classFlag, fcnF
   if classFlag then
     print(confusion)
     print('\27[31mTrain: ' .. confusion.totalValid * 100)
-    testLogger:add{['% mean class accuracy (train set)'] = confusion.totalValid * 100}
+    trainLogger:add{['% mean class accuracy (train set)'] = confusion.totalValid * 100}
     confusion:zero()
   end
 end

@@ -135,6 +135,8 @@ end
 
 function testClass(dataset,model,cudaFlag,bSize,size)
   print('<trainer> on testing Set:')
+  local testLogger = require('optim').Logger('./test.log')
+  local confusion = require('optim').ConfusionMatrix(30)
   for t = 1,size,bSize do
     xlua.progress(t, dataset:size())
     local inputs = dataset.images[{{t, math.min(t+bSize-1,size)}}]
@@ -178,8 +180,10 @@ function trainerBatch(dataset, model, lr, bSize, size, cudaFlag, classFlag, fcnF
   print('Training with batch size ' .. bSize .. ' and learning rate ' .. lr .. ' and size ' .. size)
   local params,grad_params = model:getParameters();
   local iSize = fcnFlag and 32 or 1;
+  local confusion = require('optim').ConfusionMatrix(30)
+  local trainLogger = optim.Logger('./train.log')
   local set = {
-    images = torch.Tensor(size,1,32,32),
+    images = torch.Tensor(size,dataset.images:size(2),32,32),
     labels = torch.Tensor(size):byte()
   }
   local p = torch.randperm(size);

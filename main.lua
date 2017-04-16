@@ -2,7 +2,6 @@ require 'nn'
 require 'torch'
 require 'xlua'
 require 'math'
-require 'optim'
 require 'btplib'
 
 model = torch.load('model_30_cpu.t7')
@@ -21,31 +20,27 @@ function testset:size()
     return self.images:size(1) 
 end
 
-
 print('Preprocessing data')
 mean = {}
 stdv  = {}
-mean = trainset.images[{ {}, {1}, {}, {}  }]:mean()
-trainset.images[{ {}, {1}, {}, {}  }]:add(-mean)
+for i=1,trainset.images:size(2) do
+	mean[i] = trainset.images[{ {}, {i}, {}, {}  }]:mean()
+	trainset.images[{ {}, {i}, {}, {}  }]:add(-mean[i])
 
-stdv = trainset.images[{ {}, {1}, {}, {}  }]:std()
-trainset.images[{ {}, {1}, {}, {}  }]:div(stdv)
+	stdv[i] = trainset.images[{ {}, {i}, {}, {}  }]:std()
+	trainset.images[{ {}, {i}, {}, {}  }]:div(stdv[i])
 
-testset.images[{ {}, {1}, {}, {}  }]:add(-mean)
-testset.images[{ {}, {1}, {}, {}  }]:div(stdv)
+	testset.images[{ {}, {i}, {}, {}  }]:add(-mean[i])
+	testset.images[{ {}, {i}, {}, {}  }]:div(stdv[i])
+end
 
 criterion = nn.ClassNLLCriterion()
-
-parameters,gradParameters = model:getParameters()
-confusion = optim.ConfusionMatrix(30)
-trainLogger = optim.Logger('./train.log')
-testLogger = optim.Logger('./test.log')
 
 currentError = 0
 for epoch = 1,5 do
   trainerBatch(trainset,model,0.001,50,1000,false,true,false)
   if epoch%3==0 then
-    -- testClass(testset,model,false,50,1000)
+    testClass(testset,model,false,50,1000)
     -- torch.save('model_30_cpu.t7',model)
   end
 end

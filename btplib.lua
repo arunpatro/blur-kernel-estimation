@@ -135,7 +135,7 @@ end
 
 function testClass(dataset,model,cudaFlag,bSize,size)
   print('<trainer> on testing Set:')
-  local testLogger = require('optim').Logger('./test.log')
+  testLogger = testLogger or require('optim').Logger('./test.log')
   local confusion = require('optim').ConfusionMatrix(30)
   for t = 1,size,bSize do
     xlua.progress(t, dataset:size())
@@ -181,7 +181,7 @@ function trainerBatch(dataset, model, lr, bSize, size, cudaFlag, classFlag, fcnF
   local params,grad_params = model:getParameters();
   local iSize = fcnFlag and 32 or 1;
   local confusion = require('optim').ConfusionMatrix(30)
-  local trainLogger = optim.Logger('./train.log')
+  trainLogger = trainLogger or optim.Logger('./train.log')
   local p = torch.randperm(size):long();
   for t = 1,size,bSize do
     grad_params:zero();

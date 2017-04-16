@@ -1,4 +1,6 @@
 # Blur Kernel Estimation
+## Torch and Computing
+This project is based on deep learning using the `torch` framework. This code is GPU ready too. To get torch see [torch7](http://torch.ch). Install `cuda` and `cudnn` from Nvidia's website. 
 
 ## Create Datasets
 Put all the images you wish to invariantly blur in the `images` folder. Edit according to the channels of the image. Open a MATLAB interpreter and run `create` on MATLAB. This will load the images in the folder and blur each of them with the all different sigma values.

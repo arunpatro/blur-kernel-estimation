@@ -182,21 +182,13 @@ function trainerBatch(dataset, model, lr, bSize, size, cudaFlag, classFlag, fcnF
   local iSize = fcnFlag and 32 or 1;
   local confusion = require('optim').ConfusionMatrix(30)
   local trainLogger = optim.Logger('./train.log')
-  local set = {
-    images = torch.Tensor(size,dataset.images:size(2),32,32),
-    labels = torch.Tensor(size):byte()
-  }
-  local p = torch.randperm(size);
-  for i = 1,size do
-    set.images[i] = dataset.images[p[i]]
-    set.labels[i] = dataset.labels[p[i]]
-  end
+  local p = torch.randperm(size):long();
   for t = 1,size,bSize do
     grad_params:zero();
-    local inputs = set.images[{{t, math.min(t+bSize-1,size)}}]
+    local inputs = dataset.images:index(1,p[{{t, math.min(t+bSize-1,size)}}])
 
     if classFlag then
-      targets = set.labels[{{t, math.min(t+bSize-1,size)}}]
+      targets = dataset.labels:index(1,p[{{t, math.min(t+bSize-1,size)}}])
     else
       targets = torch.Tensor(math.min(t+bSize-1,size)-t+1,1,iSize,iSize)
       for i=t,math.min(t+bSize-1,size) do

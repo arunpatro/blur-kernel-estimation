@@ -23,16 +23,16 @@ stdv = trainset.images[{ {}, {1}, {}, {}  }]:std();
 
 model = torch.load('lenet30.t7')
 
-function getSigmaClassificationB(patch)
-    prediction = model:forward(patch)
-    confidences, indices = torch.sort(prediction, true)
-    return indices[{{},1}]:double()
-end
-
 function getSigmaClassification(patch)
     prediction = model:forward(patch)
     confidences, indices = torch.sort(prediction, true)
     return indices[1]
+end
+
+function getSigmaClassificationBatch(patch)
+    prediction = model:forward(patch)
+    confidences, indices = torch.sort(prediction, true)
+    return indices[{{},1}]:double()
 end
 
 function getSigmaRegression(patch)
@@ -40,20 +40,26 @@ function getSigmaRegression(patch)
 end
 
 for i, imgName in ipairs(arg) do
-    img = image.load(imgName,1,'byte'):double():cuda();
+    local img = image.load(imgName,1,'byte'):double():cuda();
     img:add(-mean);
     img:div(stdv);
-    rows = img:size(2) - 31
-    cols = img:size(3) - 31
-    map = torch.Tensor(rows,cols);
+    local rows = img:size(2) - 31
+    local cols = img:size(3) - 31
+    local map = torch.Tensor(rows,cols);
     print('Generating sigma map for ' .. imgName);
-    batch = torch.Tensor(cols,1,32,32):cuda();
+    colHalf = torch.floor(cols/2)
     for row=1,rows do
         xlua.progress(row,rows)
-        for col=1,cols do
+        local batch = torch.Tensor(colHalf,1,32,32):cuda();
+        for col=1,colHalf do
             batch[col] = img[{{1},{row,row+31},{col,col+31}}];
         end
-        map[row] = getSigmaClassificationB(batch):mul(0.1);
+        map[{row,{1,colHalf}}] = getSigmaClassificationBatch(batch):mul(0.1);
+        local batch = torch.Tensor(cols - colHalf,1,32,32):cuda();
+        for col=colHalf+1,cols do
+            batch[col-colHalf] = img[{{1},{row,row+31},{col,col+31}}];
+        end
+        map[{row,{colHalf+1,cols}}] = getSigmaClassificationBatch(batch):mul(0.1);
     end
     matio.save(string.sub(imgName,1,-4)..'mat',map)
 end
